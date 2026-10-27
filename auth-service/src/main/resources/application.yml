@@ -1,0 +1,42 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3309/parkease_auth?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# JWT Configuration
+app:
+  jwt:
+    # 256-bit secret key (Base64 encoded) for HMAC-SHA256
+    secret: ${JWT_SECRET_KEY}
+    access-token-expiration-ms: 86400000    # 24 hours (in milliseconds)
+    refresh-token-expiration-ms: 604800000 # 7 days (in milliseconds)
+
+# Swagger OpenAPI docs configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

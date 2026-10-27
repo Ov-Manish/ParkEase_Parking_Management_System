@@ -8,8 +8,8 @@ Readme · MD
  
 A smart parking lot management platform built with **Java Spring Boot microservices**.
  
-![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.2-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Messaging-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
@@ -136,14 +136,14 @@ The full SQL is in [`parkease_schema_v4.sql`](./parkease_schema_v4.sql).
 | Messaging | RabbitMQ (notifications), Apache Kafka (event streaming) |
 | Frontend | Thymeleaf, Bootstrap 5, Leaflet.js |
 | Payments | Razorpay / Stripe |
-| Storage | AWS S3 (lot images, PDF receipts) |
+| Storage | imagekit.io (lot images, PDF receipts) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | API Docs | Swagger / OpenAPI 3 |
  
 ## 🚀 Getting Started
  
 ### Prerequisites
-- JDK 17+
+- JDK 21
 - Maven
 - MySQL 8.0.16 or newer
 - Redis, RabbitMQ and Apache Kafka (or Docker)
