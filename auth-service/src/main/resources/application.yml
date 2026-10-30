@@ -31,7 +31,7 @@ app:
   jwt:
     # 256-bit secret key (Base64 encoded) for HMAC-SHA256
     secret: ${JWT_SECRET_KEY}
-    access-token-expiration-ms: 86400000    # 24 hours (in milliseconds)
+    access-token-expiration-ms: 900000    # 15 MINUTTES (in milliseconds)
     refresh-token-expiration-ms: 604800000 # 7 days (in milliseconds)
 
 # Swagger OpenAPI docs configuration
