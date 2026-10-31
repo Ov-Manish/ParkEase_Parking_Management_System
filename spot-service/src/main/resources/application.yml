@@ -1,0 +1,37 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: spot-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3309/parkease_spot?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+# Shared JWT Secret (Same secret as auth-service, vehicle-service, and parkinglot-service)
+app:
+  jwt:
+    secret: ${JWT_SECRET_KEY}
+  services:
+    parkinglot: http://localhost:8082
+
+# URL of parkinglot-service for inter-service capacity sync
+
+# Swagger OpenAPI docs configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
