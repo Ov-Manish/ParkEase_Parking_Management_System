@@ -51,11 +51,11 @@ public class Booking {
     @Column(name = "spot_id", nullable = false)
     private UUID spotId;
 
-    // Registered vehicle ID from vehicle-service
     @Column(name = "vehicle_id", nullable = false)
     private UUID vehicleId;
 
     // Snapshot of license plate at time of booking
+    // Registered vehicle ID from vehicle-service
     @Column(name = "license_plate", nullable = false, length = 20)
     private String licensePlate;
 
