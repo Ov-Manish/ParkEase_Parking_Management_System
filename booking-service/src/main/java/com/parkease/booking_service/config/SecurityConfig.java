@@ -1,5 +1,6 @@
 package com.parkease.booking_service.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.parkease.booking_service.security.JwtAuthenticationEntryPoint;
 import com.parkease.booking_service.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,14 @@ public class SecurityConfig {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper(){
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules(); // Automatically handles JAva 21 LocalDateTime serialization
+
+        return mapper;
     }
 
     @Bean

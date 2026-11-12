@@ -30,7 +30,7 @@ public class ParkingLotClient {
      * Verifies that the lot exists and is active, and retrieves its hourly rate.
      */
     public BigDecimal getHourlyRate(UUID lotId, String jwtToken) {
-        String url = parkingLotServiceUrl + "/api/v1/parking-lots/" + lotId;
+        String url = parkingLotServiceUrl + "/api/v1/lots/" + lotId;
         HttpHeaders headers = new HttpHeaders();
         if (jwtToken != null) {
             headers.setBearerAuth(jwtToken.replace("Bearer ", ""));
