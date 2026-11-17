@@ -47,13 +47,17 @@ public class PaymentServiceImpl implements PaymentService {
             // 1. Verify booking with booking-service (checks existence, ownership, and non-cancelled status)
             BigDecimal billedAmount = bookingClient.verifyBookingAndGetAmount(request.getBookingId(),userId,jwtToken);
 
-            // 2. Prevent Double Payment (Check if booking is already paid)
-            paymentRepository.findByBookingId(request.getBookingId()).ifPresent(existingPayment ->{
-                if (existingPayment.getStatus() == PaymentStatus.COMPLETED){
+            // 2. Prevent Double Payment (Check if booking is already paid or refunded)
+            paymentRepository.findByBookingIdOrderByCreatedAtDesc(request.getBookingId()).stream().findFirst().ifPresent(existingPayment -> {
+                if (existingPayment.getStatus() == PaymentStatus.COMPLETED) {
                     throw new ConflictException("Booking " + request.getBookingId() + " has already been paid for. Ref: "
                             + existingPayment.getTransactionReference());
                 }
-
+                if (existingPayment.getStatus() == PaymentStatus.REFUNDED || existingPayment.getStatus() == PaymentStatus.PARTIALLY_REFUNDED) {
+                    throw new ConflictException("Booking " + request.getBookingId() + " has already been refunded (Status: "
+                            + existingPayment.getStatus() + ") and cannot be re-paid. Ref: "
+                            + existingPayment.getTransactionReference());
+                }
             });
 
             // 3. Generate unique, human-readable Transaction Reference (e.g. PE-TXN-20261117-A1B2C3D4)
@@ -148,11 +152,13 @@ public class PaymentServiceImpl implements PaymentService {
         log.info("Processing refund for paymentId: {} by user: {} (Role: {})", request.getPaymentId(), userId, role);
         Payment payment = paymentRepository.findById(request.getPaymentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + request.getPaymentId()));
-        // Authorization: Only payment owner, Admin, or Lot Manager can initiate refund
-        boolean isOwner = payment.getUserId().equals(userId);
+        // Authorization: Only Admin or Lot Manager can initiate refund
         boolean isPrivileged = "ROLE_ADMIN".equalsIgnoreCase(role) || "ROLE_LOT_MANAGER".equalsIgnoreCase(role);
-        if (!isOwner && !isPrivileged) {
-            throw new BadRequestException("Access denied. You cannot refund this payment.");
+        if (!isPrivileged) {
+            throw new BadRequestException("Access denied. Only LOT_MANAGER or ADMIN can process refunds.");
+        }
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            throw new ConflictException("Payment " + payment.getPaymentId() + " has already been fully refunded.");
         }
         if (payment.getStatus() != PaymentStatus.COMPLETED && payment.getStatus() != PaymentStatus.PARTIALLY_REFUNDED) {
             throw new BadRequestException("Cannot refund a payment with status: " + payment.getStatus());
@@ -208,7 +214,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentByBookingId(UUID bookingId, UUID userId, String role) {
-        Payment payment = paymentRepository.findByBookingId(bookingId)
+        Payment payment = paymentRepository.findByBookingIdOrderByCreatedAtDesc(bookingId).stream().findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("No payment found for booking: " + bookingId));
         boolean isOwner = payment.getUserId().equals(userId);
         boolean isPrivileged = "ROLE_ADMIN".equalsIgnoreCase(role) || "ROLE_LOT_MANAGER".equalsIgnoreCase(role);

@@ -78,6 +78,7 @@ public class WalletServiceImpl implements WalletService {
 
         BigDecimal balanceBefore = wallet.getBalance();
         BigDecimal balanceAfter = balanceBefore.add(request.getAmount());
+        wallet.setBalance(balanceAfter);
 
         Wallet savedWallet = walletRepository.save(wallet);
 

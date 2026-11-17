@@ -60,8 +60,8 @@ public class PaymentController {
 
     // 3. Process refund on booking cancellation
     @PostMapping("/refund")
-    @PreAuthorize("hasAnyRole('DRIVER', 'LOT_MANAGER', 'ADMIN')")
-    @Operation(summary = "Refund Payment", description = "Processes full or partial refund back to wallet or bank source.")
+    @PreAuthorize("hasAnyRole('LOT_MANAGER', 'ADMIN')")
+    @Operation(summary = "Refund Payment", description = "Processes full or partial refund back to wallet or bank source. Restricted to Lot Manager and Admin.")
     public ResponseEntity<ApiResponse<PaymentResponse>> refundPayment(
             @Valid @RequestBody RefundRequest request,
             Authentication authentication) {
