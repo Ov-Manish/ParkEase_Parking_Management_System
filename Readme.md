@@ -185,12 +185,12 @@ parkease/
  
 - [x] Requirement analysis and use cases
 - [x] Database schema design
-- [ ] auth-service
-- [ ] vehicle-service
-- [ ] parkinglot-service
-- [ ] spot-service
-- [ ] booking-service
-- [ ] payment-service
+- [X] auth-service
+- [X] vehicle-service
+- [X] parkinglot-service
+- [X] spot-service
+- [X] booking-service
+- [X] payment-service
 - [ ] notification-service
 - [ ] analytics-service
 - [ ] parkease-web (Thymeleaf UI)
@@ -198,7 +198,7 @@ parkease/
 - [ ] Docker Compose setup
 ## 👨‍💻 Author
  
-Built by **Over** as part of the BridgeLabz Java Full Stack Fellowship.
+Built by **Manish** as part of the BridgeLabz Java Full Stack Fellowship.
  
 GitHub: [@Ov-Manish](https://github.com/Ov-Manish)
  
@@ -214,4 +214,4 @@ GitHub: [@Ov-Manish](https://github.com/Ov-Manish)
 
 
 
-Claude finished the response
+
