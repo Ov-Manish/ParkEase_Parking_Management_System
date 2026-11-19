@@ -4,6 +4,7 @@ package com.parkease.booking_service.service.impl;
 import com.parkease.booking_service.client.ParkingLotClient;
 import com.parkease.booking_service.client.SpotClient;
 import com.parkease.booking_service.client.VehicleClient;
+import com.parkease.booking_service.dto.event.BookingEventProducer;
 import com.parkease.booking_service.dto.request.BookingRequest;
 import com.parkease.booking_service.dto.response.BookingResponse;
 import com.parkease.booking_service.dto.response.CheckInResponse;
@@ -38,6 +39,7 @@ public class BookingServiceImpl implements BookingService {
     private final SpotClient spotClient;
     private final ParkingLotClient parkingLotClient;
     private final VehicleClient vehicleClient;
+    private final BookingEventProducer bookingEventProducer;
 
     private static final Set<BookingStatus> ACTIVE_STATUSES = Set.of(
             BookingStatus.CONFIRMED,
@@ -97,6 +99,10 @@ public class BookingServiceImpl implements BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
         log.info("Booking created successfully with reference: {}", bookingTicketReference);
+
+        // Publish asynchronous booking confirmed event to RabbitMQ
+        bookingEventProducer.publishBookingConfirmed(savedBooking, null, null);
+
         return mapToResponse(savedBooking);
 
     }
@@ -236,6 +242,9 @@ public class BookingServiceImpl implements BookingService {
         Booking cancelledBooking = bookingRepository.save(booking);
 
         spotClient.updateSpotStatus(booking.getSpotId() , "AVAILABLE", jwtToken);
+
+        // Publish asynchronous booking cancelled event to RabbitMQ
+        bookingEventProducer.publishBookingCancelled(cancelledBooking, null, null);
 
         return mapToResponse(cancelledBooking);
 

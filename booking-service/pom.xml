@@ -61,6 +61,12 @@
 			<optional>true</optional>
 		</dependency>
 
+<!--        AMQP Dependency     -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
 		<!-- JWT for token validation -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -106,7 +112,11 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-messaging</artifactId>
+        </dependency>
+    </dependencies>
 
 	<build>
 		<plugins>
