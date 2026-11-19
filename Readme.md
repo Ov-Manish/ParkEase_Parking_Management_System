@@ -191,7 +191,7 @@ parkease/
 - [X] spot-service
 - [X] booking-service
 - [X] payment-service
-- [ ] notification-service
+- [X] notification-service
 - [ ] analytics-service
 - [ ] parkease-web (Thymeleaf UI)
 - [ ] Kafka topics and event flow

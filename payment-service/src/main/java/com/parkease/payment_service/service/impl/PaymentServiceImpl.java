@@ -14,6 +14,7 @@ import com.parkease.payment_service.exception.ResourceNotFoundException;
 import com.parkease.payment_service.gateway.PaymentGateway;
 import com.parkease.payment_service.gateway.dto.GatewayOrderResponse;
 import com.parkease.payment_service.gateway.dto.GatewayRefundResponse;
+import com.parkease.payment_service.producer.PaymentEventProducer;
 import com.parkease.payment_service.repository.PaymentRepository;
 import com.parkease.payment_service.service.PaymentService;
 import com.parkease.payment_service.service.WalletService;
@@ -37,6 +38,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final WalletService walletService;
     private final PaymentGateway paymentGateway;
     private final BookingClient bookingClient;
+    private final PaymentEventProducer paymentEventProducer;
 
     @Override
     @Transactional
@@ -110,6 +112,10 @@ public class PaymentServiceImpl implements PaymentService {
                         request.getBookingId(), orderResponse.getOrderId());
             }
         Payment savedPayment = paymentRepository.save(payment);
+
+        // Publish asynchronous payment success event to RabbitMQ
+        paymentEventProducer.publishPaymentSuccess(savedPayment, null, null);
+
         return mapToPaymentResponse(savedPayment);
 
     }
@@ -143,7 +149,15 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setFailureReason("Invalid gateway signature verification failed");
             log.warn("Payment signature verification failed for ref: {}", request.getTransactionReference());
         }
-        return mapToPaymentResponse(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+
+        if (savedPayment.getStatus() == PaymentStatus.COMPLETED) {
+            paymentEventProducer.publishPaymentSuccess(savedPayment, null, null);
+        } else {
+            paymentEventProducer.publishPaymentFailed(savedPayment, null, null, savedPayment.getFailureReason());
+        }
+
+        return mapToPaymentResponse(savedPayment);
     }
 
     @Override
@@ -195,7 +209,12 @@ public class PaymentServiceImpl implements PaymentService {
         } else {
             payment.setStatus(PaymentStatus.PARTIALLY_REFUNDED);
         }
-        return mapToPaymentResponse(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+
+        // Publish asynchronous payment refund event to RabbitMQ
+        paymentEventProducer.publishPaymentRefunded(savedPayment, null, null);
+
+        return mapToPaymentResponse(savedPayment);
     }
 
     @Override

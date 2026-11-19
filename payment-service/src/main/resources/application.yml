@@ -20,6 +20,12 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
 # Shared JWT Secret & Microservice URLs
 app:
   jwt:
@@ -33,6 +39,12 @@ app:
     razorpay:
       key-id: ${RAZORPAY_KEY_ID:rzp_test_placeholder}
       key-secret: ${RAZORPAY_KEY_SECRET:placeholder_secret}
+  rabbitmq:
+    exchange: parkease.exchange
+    routing-keys:
+      payment-success: payment.success
+      payment-failed: payment.failed
+      payment-refunded: payment.refunded
 
 # Swagger OpenAPI Docs
 springdoc:

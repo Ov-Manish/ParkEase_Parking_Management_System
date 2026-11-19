@@ -4,7 +4,7 @@ package com.parkease.booking_service.service.impl;
 import com.parkease.booking_service.client.ParkingLotClient;
 import com.parkease.booking_service.client.SpotClient;
 import com.parkease.booking_service.client.VehicleClient;
-import com.parkease.booking_service.dto.event.BookingEventProducer;
+import com.parkease.booking_service.producer.BookingEventProducer;
 import com.parkease.booking_service.dto.request.BookingRequest;
 import com.parkease.booking_service.dto.response.BookingResponse;
 import com.parkease.booking_service.dto.response.CheckInResponse;

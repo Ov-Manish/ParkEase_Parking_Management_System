@@ -1,4 +1,4 @@
-package com.parkease.booking_service.dto.event;
+package com.parkease.booking_service.producer;
 
 import com.parkease.booking_service.dto.event.BookingEventPayload;
 import com.parkease.booking_service.entity.Booking;
