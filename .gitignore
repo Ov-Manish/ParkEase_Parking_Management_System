@@ -1,0 +1,10 @@
+# Logs directory created by background launcher
+logs/
+*.log
+
+# IDE & OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

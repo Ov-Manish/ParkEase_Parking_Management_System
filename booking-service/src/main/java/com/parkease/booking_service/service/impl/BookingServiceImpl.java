@@ -15,6 +15,7 @@ import com.parkease.booking_service.exception.BadRequestException;
 import com.parkease.booking_service.exception.ConflictException;
 import com.parkease.booking_service.exception.ResourceNotFoundException;
 import com.parkease.booking_service.repository.BookingRepository;
+import com.parkease.booking_service.security.JwtTokenProvider;
 import com.parkease.booking_service.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class BookingServiceImpl implements BookingService {
     private final ParkingLotClient parkingLotClient;
     private final VehicleClient vehicleClient;
     private final BookingEventProducer bookingEventProducer;
+    private final JwtTokenProvider jwtTokenProvider;
 
     private static final Set<BookingStatus> ACTIVE_STATUSES = Set.of(
             BookingStatus.CONFIRMED,
@@ -51,6 +53,8 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse createResponse(BookingRequest request, UUID userId, String jwtToken) {
         log.info("Processing reservation request for user: {}, spot: {}", userId, request.getSpotId());
 
+
+        String email = jwtTokenProvider.getEmailFromToken(jwtToken);
 //        Validate that the end time is strictly after the start time
         if (!request.getReservedTo().isAfter(request.getReservedFrom())){
             throw new BadRequestException("Reservation end time must be after the start time");
@@ -101,7 +105,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Booking created successfully with reference: {}", bookingTicketReference);
 
         // Publish asynchronous booking confirmed event to RabbitMQ
-        bookingEventProducer.publishBookingConfirmed(savedBooking, null, null);
+        bookingEventProducer.publishBookingConfirmed(savedBooking, null, email);
 
         return mapToResponse(savedBooking);
 

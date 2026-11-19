@@ -11,11 +11,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username:}")
     private String senderEmail;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     /**
      * Sends an email via JavaMailSender if configured, or logs the email body if credentials are empty.

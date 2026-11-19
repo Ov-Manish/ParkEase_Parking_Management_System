@@ -41,6 +41,9 @@ public class Payment {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "user_email", length = 120)
+    private String userEmail;
+
     // Total amount charged
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;

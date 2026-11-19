@@ -38,7 +38,7 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
                         // Internal / Test send notification endpoint can be invoked by services
-                        .requestMatchers("/api/v1/notifications/send").permitAll()
+                        .requestMatchers("/api/v1/notifications/send").hasRole("ADMIN")
                         // All inbox queries and mark-read operations require authentication
                         .anyRequest().authenticated()
                 );

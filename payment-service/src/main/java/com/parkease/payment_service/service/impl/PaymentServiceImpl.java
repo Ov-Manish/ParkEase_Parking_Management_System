@@ -16,6 +16,7 @@ import com.parkease.payment_service.gateway.dto.GatewayOrderResponse;
 import com.parkease.payment_service.gateway.dto.GatewayRefundResponse;
 import com.parkease.payment_service.producer.PaymentEventProducer;
 import com.parkease.payment_service.repository.PaymentRepository;
+import com.parkease.payment_service.security.JwtTokenProvider;
 import com.parkease.payment_service.service.PaymentService;
 import com.parkease.payment_service.service.WalletService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentGateway paymentGateway;
     private final BookingClient bookingClient;
     private final PaymentEventProducer paymentEventProducer;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     @Transactional
@@ -62,6 +64,8 @@ public class PaymentServiceImpl implements PaymentService {
                 }
             });
 
+            String email = jwtTokenProvider.getEmailFromToken(jwtToken);
+
             // 3. Generate unique, human-readable Transaction Reference (e.g. PE-TXN-20261117-A1B2C3D4)
 
             String datePart = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
@@ -71,6 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
             Payment payment = Payment.builder()
                     .bookingId(request.getBookingId())
                     .userId(userId)
+                    .userEmail(email)
                     .amount(request.getAmount())
                     .refundAmount(BigDecimal.ZERO)
                     .paymentMethod(request.getPaymentMethod())
@@ -114,7 +119,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         // Publish asynchronous payment success event to RabbitMQ
-        paymentEventProducer.publishPaymentSuccess(savedPayment, null, null);
+        paymentEventProducer.publishPaymentSuccess(savedPayment, email, null);
 
         return mapToPaymentResponse(savedPayment);
 
@@ -130,6 +135,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (payment.getStatus() == PaymentStatus.COMPLETED) {
             return mapToPaymentResponse(payment);
         }
+
 
         boolean isValid  = paymentGateway.verifyPaymentSignature(
                 request.getGatewayPaymentId(),
@@ -152,9 +158,9 @@ public class PaymentServiceImpl implements PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         if (savedPayment.getStatus() == PaymentStatus.COMPLETED) {
-            paymentEventProducer.publishPaymentSuccess(savedPayment, null, null);
+            paymentEventProducer.publishPaymentSuccess(savedPayment, savedPayment.getUserEmail(), null);
         } else {
-            paymentEventProducer.publishPaymentFailed(savedPayment, null, null, savedPayment.getFailureReason());
+            paymentEventProducer.publishPaymentFailed(savedPayment, savedPayment.getUserEmail(), null, savedPayment.getFailureReason());
         }
 
         return mapToPaymentResponse(savedPayment);
@@ -212,7 +218,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         // Publish asynchronous payment refund event to RabbitMQ
-        paymentEventProducer.publishPaymentRefunded(savedPayment, null, null);
+        paymentEventProducer.publishPaymentRefunded(savedPayment, savedPayment.getUserEmail(), null);
 
         return mapToPaymentResponse(savedPayment);
     }

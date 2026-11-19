@@ -60,4 +60,17 @@ public class JwtTokenProvider {
         }
         return false;
     }
+
+    public String getEmailFromToken(String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("email", String.class);
+    }
 }
