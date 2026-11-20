@@ -61,7 +61,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
 //        Cross-service validation: Ensure the spot belongs to the specified lot and is active
-        spotClient.verifySpotBelongsToLot(request.getSpotId(),request.getLotId(),jwtToken);
+        String spotNumber = spotClient.verifySpotBelongsToLot(request.getSpotId(),request.getLotId(),jwtToken);
 
 //        Collision check: Ensure no overlapping active bookings exist for this spot
         boolean hasOverlap = bookingRepository.hasOverlappingReservation(
@@ -105,7 +105,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Booking created successfully with reference: {}", bookingTicketReference);
 
         // Publish asynchronous booking confirmed event to RabbitMQ
-        bookingEventProducer.publishBookingConfirmed(savedBooking, null, email);
+        bookingEventProducer.publishBookingConfirmed(savedBooking, spotNumber, email);
 
         return mapToResponse(savedBooking);
 
@@ -240,15 +240,17 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Cannot cancel booking. Only CONFIRMED bookings can be cancelled (current status: " + booking.getStatus() + ")");
         }
 
+        String email = jwtTokenProvider.getEmailFromToken(jwtToken);
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason("Cancelled by driver");
 
         Booking cancelledBooking = bookingRepository.save(booking);
 
         spotClient.updateSpotStatus(booking.getSpotId() , "AVAILABLE", jwtToken);
+        String spotNumber = spotClient.getSpotNumber(booking.getSpotId(),jwtToken);
 
         // Publish asynchronous booking cancelled event to RabbitMQ
-        bookingEventProducer.publishBookingCancelled(cancelledBooking, null, null);
+        bookingEventProducer.publishBookingCancelled(cancelledBooking, spotNumber, email);
 
         return mapToResponse(cancelledBooking);
 

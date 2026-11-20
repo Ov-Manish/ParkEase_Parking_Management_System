@@ -28,30 +28,26 @@ public class SpotClient {
     /**
      * Verifies that the spot belongs to the lot and is active.
      */
-    public void verifySpotBelongsToLot(UUID spotId, UUID lotId, String jwtToken) {
+    public String verifySpotBelongsToLot(UUID spotId, UUID lotId, String jwtToken) {
         String url = spotServiceUrl + "/api/v1/spots/" + spotId;
-
         HttpHeaders headers = new HttpHeaders();
         if (jwtToken != null) {
             headers.setBearerAuth(jwtToken.replace("Bearer ", ""));
         }
         HttpEntity<Void> entity = new HttpEntity<>(headers);
-
         try {
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-
             JsonNode root = objectMapper.readTree(response.getBody());
             JsonNode data = root.has("data") ? root.get("data") : root;
-
             UUID spotLotId = UUID.fromString(data.path("lotId").asText());
             if (!spotLotId.equals(lotId)) {
                 throw new BadRequestException("Spot " + spotId + " does not belong to Parking Lot " + lotId);
             }
-
             boolean isActive = data.path("isActive").asBoolean(true);
             if (!isActive) {
                 throw new BadRequestException("Spot " + spotId + " is currently inactive or under maintenance");
             }
+            return data.hasNonNull("spotNumber") ? data.path("spotNumber").asText() : null;
         } catch (HttpStatusCodeException ex) {
             if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new ResourceNotFoundException("Spot not found with ID: " + spotId);
@@ -61,6 +57,25 @@ public class SpotClient {
             throw ex;
         } catch (Exception ex) {
             log.warn("Spot verification skipped: {}", ex.getMessage());
+            return null;
+        }
+    }
+
+    public String getSpotNumber(UUID spotId, String jwtToken) {
+        String url = spotServiceUrl + "/api/v1/spots/" + spotId;
+        HttpHeaders headers = new HttpHeaders();
+        if (jwtToken != null) {
+            headers.setBearerAuth(jwtToken.replace("Bearer ", ""));
+        }
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            JsonNode root = objectMapper.readTree(response.getBody());
+            JsonNode data = root.has("data") ? root.get("data") : root;
+            return data.hasNonNull("spotNumber") ? data.path("spotNumber").asText() : null;
+        } catch (Exception ex) {
+            log.warn("Failed to fetch spotNumber for spot {}: {}", spotId, ex.getMessage());
+            return null;
         }
     }
 
