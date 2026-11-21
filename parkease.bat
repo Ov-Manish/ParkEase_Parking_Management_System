@@ -2,10 +2,9 @@
 setlocal
 cd /d "%~dp0"
 
-:: Simple double-clickable Batch Wrapper around manage-services.ps1
-:: If no argument given, show status dashboard
+:: Default double-click action starts all 9 services
 if "%1"=="" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0manage-services.ps1" -Action status
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0manage-services.ps1" -Action start
     pause
     goto end
 )

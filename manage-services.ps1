@@ -1,41 +1,43 @@
 # ==============================================================================
 # ParkEase Smart Parking Management System - Microservices Control Hub
 # ==============================================================================
-# Manages all 7 microservices in the background with ZERO popup command windows.
+# Manages Eureka Server and all 7 microservices in background with zero popups.
 # Usage:
-#   .\manage-services.ps1 -Action start    -> Starts all services in proper order
+#   .\manage-services.ps1 -Action start    -> Starts Eureka + 7 microservices
 #   .\manage-services.ps1 -Action stop     -> Stops all services & frees ports
 #   .\manage-services.ps1 -Action status   -> Displays port & health status table
-#   .\manage-services.ps1 -Action logs -Service notification-service -> View live logs
+#   .\manage-services.ps1 -Action logs -Service notification-service -> Live logs
 # ==============================================================================
 
 param (
     [ValidateSet("start", "stop", "status", "logs", "restart")]
     [string]$Action = "status",
 
-    [ValidateSet("auth-service", "vehicle-service", "parkinglot-service", "spot-service", "booking-service", "payment-service", "notification-service")]
-    [string]$Service = "notification-service",
+    [ValidateSet("service-registry", "auth-service", "vehicle-service", "parkinglot-service", "spot-service", "booking-service", "payment-service", "notification-service", "api-gateway")]
+    [string]$Service = "service-registry",
 
     [string]$DbUser = "root",
-    [string]$DbPassword = "root",
+    [string]$DbPassword = "Manish[8699090628]",
     [string]$JwtSecret = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970",
-    [string]$MailUsername = $env:SPRING_MAIL_USERNAME,
-    [string]$MailPassword = $env:SPRING_MAIL_PASSWORD
+    [string]$MailUsername = "manishsharma75085@gmail.com",
+    [string]$MailPassword = "cgiylyxinlywaifv"
 )
 
 $ErrorActionPreference = "Continue"
 $RootPath = $PSScriptRoot
 $LogsDir = Join-Path $RootPath "logs"
 
-# Define all 7 microservices in their optimal dependency startup sequence
+# Define all 9 microservices in their optimal dependency startup sequence
 $ServicesList = @(
-    @{ Name = "auth-service";        Port = 8081; Order = 1; Desc = "Authentication & JWT Provider" },
-    @{ Name = "vehicle-service";     Port = 8086; Order = 2; Desc = "Vehicle Registry & Management" },
-    @{ Name = "parkinglot-service";  Port = 8082; Order = 3; Desc = "Parking Lot Management & Layout" },
-    @{ Name = "spot-service";        Port = 8083; Order = 4; Desc = "Spot Inventory & Real-time State" },
-    @{ Name = "booking-service";     Port = 8084; Order = 5; Desc = "Reservation Engine & Event Producer" },
-    @{ Name = "payment-service";     Port = 8085; Order = 6; Desc = "Payment & Wallet Event Producer" },
-    @{ Name = "notification-service"; Port = 8087; Order = 7; Desc = "Email & Notification Event Consumer" }
+    @{ Name = "service-registry";    Port = 8761; Order = 1; Desc = "Eureka Service Discovery Registry" },
+    @{ Name = "auth-service";        Port = 8081; Order = 2; Desc = "Authentication & JWT Provider" },
+    @{ Name = "vehicle-service";     Port = 8086; Order = 3; Desc = "Vehicle Registry & Management" },
+    @{ Name = "parkinglot-service";  Port = 8082; Order = 4; Desc = "Parking Lot Management & Layout" },
+    @{ Name = "spot-service";        Port = 8083; Order = 5; Desc = "Spot Inventory & Real-time State" },
+    @{ Name = "booking-service";     Port = 8084; Order = 6; Desc = "Reservation Engine & Event Producer" },
+    @{ Name = "payment-service";     Port = 8085; Order = 7; Desc = "Payment & Wallet Event Producer" },
+    @{ Name = "notification-service"; Port = 8087; Order = 8; Desc = "Email & Notification Event Consumer" },
+    @{ Name = "api-gateway";         Port = 8080; Order = 9; Desc = "API Gateway & Edge Router" }
 )
 
 function Ensure-JavaHome {
@@ -63,13 +65,15 @@ function Show-Status {
         $port = $svc.Port
         $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
         
+        $dashboardUrl = if ($port -eq 8761) { "http://localhost:8761" } elseif ($port -eq 8080) { "http://localhost:8080/actuator/health" } else { "http://localhost:$port/swagger-ui.html" }
+
         $statusReport += [PSCustomObject]@{
             "Order"   = $svc.Order
             "Service" = $svc.Name
             "Port"    = $port
             "Status"  = if ($conn) { "UP (Running)" } else { "DOWN (Stopped)" }
             "PID"     = if ($conn) { $conn.OwningProcess } else { "-" }
-            "Swagger / Health" = "http://localhost:$port/swagger-ui.html"
+            "Dashboard / Swagger" = $dashboardUrl
         }
     }
 
@@ -149,7 +153,7 @@ function Start-AllServices {
             continue
         }
 
-        Write-Host " [>] Launching $($svc.Order)/7: $name on Port $port..." -ForegroundColor Cyan
+        Write-Host " [>] Launching $($svc.Order)/9: $name on Port $port..." -ForegroundColor Cyan
 
         # Prepare background process using Maven wrapper / installed maven
         $mailUserArg = if ($MailUsername) { "set SPRING_MAIL_USERNAME=$MailUsername&& " } else { "" }
@@ -185,12 +189,20 @@ function Start-AllServices {
         $process.BeginErrorReadLine()
 
         Write-Host "     Started in background. Logs: logs\$name.log" -ForegroundColor DarkGray
-        Start-Sleep -Seconds 3
+        
+        # Give Eureka Server 5 seconds to bind before clients start
+        if ($name -eq "service-registry") {
+            Start-Sleep -Seconds 5
+        } else {
+            Start-Sleep -Seconds 3
+        }
     }
 
     Write-Host ""
-    Write-Host "[OK] All 7 services initiated. Run '.\manage-services.ps1 -Action status' in ~30s to view UP status." -ForegroundColor Green
-    Write-Host ""
+    Write-Host "[OK] All 9 microservices launched in the background!" -ForegroundColor Green
+    Write-Host "     Waiting 8 seconds for services to initialize..." -ForegroundColor DarkGray
+    Start-Sleep -Seconds 8
+    Show-Status
 }
 
 function Show-Logs {
