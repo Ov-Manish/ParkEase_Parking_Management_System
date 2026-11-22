@@ -49,3 +49,8 @@ eureka:
   instance:
     prefer-ip-address: true
 
+
+parkease:
+  booking:
+    grace-period-minutes: 15       # 15-minute no-show grace window
+    expiry-check-delay-ms: 60000

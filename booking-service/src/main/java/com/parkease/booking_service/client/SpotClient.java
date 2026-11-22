@@ -98,4 +98,15 @@ public class SpotClient {
             log.warn("Could not notify spot-service of status change: {}", ex.getMessage());
         }
     }
+
+    public void releaseSpot(UUID spotId){
+        String url = spotServiceUrl + "/api/v1/spots/" + spotId + "/release";
+
+        try {
+            restTemplate.postForEntity(url,null,String.class);
+            log.info("Spot {} successfully released back to AVAILABLE in spot-service", spotId);
+        }catch (Exception ex){
+            log.warn("Could not release spot {}: {}", spotId, ex.getMessage());
+        }
+    }
 }

@@ -49,4 +49,15 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("reservedTo") LocalDateTime reservedTo,
             @Param("activeStatuses") Collection<BookingStatus> activeStatuses
     );
+
+    @Query("""
+            SELECT b from Booking b
+            WHERE  b.status = :status
+            AND b.checkInTime IS NULL
+            AND b.reservedFrom < :cutOffTime
+            AND b.isActive = true
+            """)
+    List<Booking> findExpiredBookings(
+            @Param("status") BookingStatus status ,
+            @Param("cutOffTime") LocalDateTime cutOffTime);
 }
