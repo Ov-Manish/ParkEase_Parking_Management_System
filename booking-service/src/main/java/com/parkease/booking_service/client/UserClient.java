@@ -27,7 +27,7 @@ public class UserClient {
         String url = authServiceUrl + "/api/v1/auth/users/" + userId;
 
         try {
-            String response = restTemplate.getForObject(url,null,String.class);
+            String response = restTemplate.getForObject(url, String.class);
             JsonNode root = objectMapper.readTree(response);
             JsonNode data = root.has("data") ? root.get("data") : root;
             return data.hasNonNull("email") ? data.path("email").asText() : null;

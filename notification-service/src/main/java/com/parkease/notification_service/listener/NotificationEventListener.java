@@ -34,7 +34,7 @@ public class NotificationEventListener {
 
             String title = switch (type) {
                 case BOOKING_CONFIRMED -> "Booking Confirmed - Spot " + event.getSpotNumber();
-                case BOOKING_CANCELLED -> "Booking Cancelled - " + event.getBookingReference();
+                case BOOKING_CANCELLED -> "⚠️ Spot Released: Booking Expired - " + event.getBookingReference();
                 case OVERSTAY_ALERT -> "⚠️ Overstay Alert - Vehicle " + event.getLicensePlate();
                 default -> "Booking Update";
             };
@@ -45,7 +45,7 @@ public class NotificationEventListener {
                         event.getSpotNumber(), event.getReservedFrom(), event.getReservedTo(),
                         event.getTotalAmount(), event.getBookingReference());
                 case BOOKING_CANCELLED -> String.format(
-                        "Your booking %s for spot %s has been cancelled successfully.",
+                        "⚠️ Your reservation %s for Spot %s has expired and been cancelled because check-in was not completed within the 15-minute grace period. The spot has been released back to public availability.",
                         event.getBookingReference(), event.getSpotNumber());
                 case OVERSTAY_ALERT -> String.format(
                         "Your vehicle %s has exceeded the reserved parking time at spot %s. Please exit or extend your booking to avoid penalties.",
