@@ -2,6 +2,9 @@
 logs/
 *.log
 
+# Project specification & documentation PDFs
+*.pdf
+
 # IDE & OS files
 .idea/
 .vscode/

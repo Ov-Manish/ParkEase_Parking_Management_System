@@ -1,0 +1,293 @@
+{
+	"info": {
+		"_postman_id": "parkease-analytics-collection-v1",
+		"name": "ParkEase - Analytics Microservice",
+		"description": "Automated Postman Collection with ID & Token Chaining Scripts for ParkEase Analytics Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwtToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "lotId",
+			"value": "0573688f-1261-4aa7-8904-75b1d608d70b",
+			"type": "string"
+		},
+		{
+			"key": "logId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01 - Authenticate (Auto-saves Token)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const res = pm.response.json();",
+							"const token = res.accessToken || (res.data && res.data.accessToken);",
+							"if (token) {",
+							"    pm.collectionVariables.set('jwtToken', token);",
+							"    console.log('✅ JWT Token automatically saved to {{jwtToken}}');",
+							"} else {",
+							"    console.error('❌ Failed to extract token from login response');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": { "type": "noauth" },
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"stringst\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/auth/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "02 - Discover Active Lot ID (Auto-saves lotId)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const res = pm.response.json();",
+							"const lots = Array.isArray(res) ? res : (res.data || []);",
+							"if (lots.length > 0 && lots[0].lotId) {",
+							"    pm.collectionVariables.set('lotId', lots[0].lotId);",
+							"    console.log('✅ Lot ID automatically saved to {{lotId}}: ' + lots[0].lotId);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/lots/search/city?city=Bangalore",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "lots", "search", "city"],
+					"query": [{ "key": "city", "value": "Bangalore" }]
+				}
+			}
+		},
+		{
+			"name": "03 - Log Occupancy Snapshot (Auto-saves logId)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const res = pm.response.json();",
+							"if (res.logId) {",
+							"    pm.collectionVariables.set('logId', res.logId);",
+							"    console.log('✅ Log ID automatically saved to {{logId}}: ' + res.logId);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"lotId\": \"{{lotId}}\",\n  \"totalSpots\": 100,\n  \"availableSpots\": 25,\n  \"vehicleType\": \"FOUR_WHEELER\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/occupancy/log",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "occupancy", "log"]
+				}
+			}
+		},
+		{
+			"name": "04 - Get Real-Time Occupancy Rate",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/occupancy?period=TODAY",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "occupancy"],
+					"query": [{ "key": "period", "value": "TODAY" }]
+				}
+			}
+		},
+		{
+			"name": "05 - Get 24-Hour Continuous Hourly Curve",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/hourly",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "hourly"]
+				}
+			}
+		},
+		{
+			"name": "06 - Get Peak Rush Hours vs Low Hours",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/peak-hours",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "peak-hours"]
+				}
+			}
+		},
+		{
+			"name": "07 - Get Aggregated Revenue by Lot",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/revenue?from=2026-11-01&to=2026-11-23",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "revenue"],
+					"query": [
+						{ "key": "from", "value": "2026-11-01" },
+						{ "key": "to", "value": "2026-11-23" }
+					]
+				}
+			}
+		},
+		{
+			"name": "08 - Get Day-by-Day Revenue Trend",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/daily-revenue?days=7",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "daily-revenue"],
+					"query": [{ "key": "days", "value": "7" }]
+				}
+			}
+		},
+		{
+			"name": "09 - Get Spot Type Utilization Breakdown",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/spot-types",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "spot-types"]
+				}
+			}
+		},
+		{
+			"name": "10 - Get Average Parking Duration",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/lot/{{lotId}}/avg-duration",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "lot", "{{lotId}}", "avg-duration"]
+				}
+			}
+		},
+		{
+			"name": "11 - Platform Summary (Super Admin Only)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/platform/summary",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "platform", "summary"]
+				}
+			}
+		},
+		{
+			"name": "12 - Consolidated Daily Report",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [{ "key": "token", "value": "{{jwtToken}}", "type": "string" }]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/analytics/reports/daily?lotId={{lotId}}&date=2026-11-23",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "analytics", "reports", "daily"],
+					"query": [
+						{ "key": "lotId", "value": "{{lotId}}" },
+						{ "key": "date", "value": "2026-11-23" }
+					]
+				}
+			}
+		}
+	]
+}

@@ -13,7 +13,7 @@ param (
     [ValidateSet("start", "stop", "status", "logs", "restart")]
     [string]$Action = "status",
 
-    [ValidateSet("service-registry", "auth-service", "vehicle-service", "parkinglot-service", "spot-service", "booking-service", "payment-service", "notification-service", "api-gateway")]
+    [ValidateSet("service-registry", "auth-service", "vehicle-service", "parkinglot-service", "spot-service", "booking-service", "payment-service", "notification-service", "analytics-service", "api-gateway")]
     [string]$Service = "service-registry",
 
     [string]$DbUser = "root",
@@ -27,7 +27,7 @@ $ErrorActionPreference = "Continue"
 $RootPath = $PSScriptRoot
 $LogsDir = Join-Path $RootPath "logs"
 
-# Define all 9 microservices in their optimal dependency startup sequence
+# Define all 10 microservices in their optimal dependency startup sequence
 $ServicesList = @(
     @{ Name = "service-registry";    Port = 8761; Order = 1; Desc = "Eureka Service Discovery Registry" },
     @{ Name = "auth-service";        Port = 8081; Order = 2; Desc = "Authentication & JWT Provider" },
@@ -37,7 +37,8 @@ $ServicesList = @(
     @{ Name = "booking-service";     Port = 8084; Order = 6; Desc = "Reservation Engine & Event Producer" },
     @{ Name = "payment-service";     Port = 8085; Order = 7; Desc = "Payment & Wallet Event Producer" },
     @{ Name = "notification-service"; Port = 8087; Order = 8; Desc = "Email & Notification Event Consumer" },
-    @{ Name = "api-gateway";         Port = 8080; Order = 9; Desc = "API Gateway & Edge Router" }
+    @{ Name = "analytics-service";    Port = 8088; Order = 9; Desc = "Occupancy Analytics & Business Intelligence" },
+    @{ Name = "api-gateway";         Port = 8080; Order = 10; Desc = "API Gateway & Edge Router" }
 )
 
 function Ensure-JavaHome {
@@ -153,40 +154,17 @@ function Start-AllServices {
             continue
         }
 
-        Write-Host " [>] Launching $($svc.Order)/9: $name on Port $port..." -ForegroundColor Cyan
+        Write-Host " [>] Launching $($svc.Order)/10: $name on Port $port..." -ForegroundColor Cyan
 
         # Prepare background process using Maven wrapper / installed maven
         $mailUserArg = if ($MailUsername) { "set SPRING_MAIL_USERNAME=$MailUsername&& " } else { "" }
         $mailPassArg = if ($MailPassword) { "set SPRING_MAIL_PASSWORD=$MailPassword&& " } else { "" }
 
-        $cmdCommand = "/c set JAVA_HOME=$($env:JAVA_HOME)&& set PATH=$($env:JAVA_HOME)\bin;%PATH%&& set DB_USERNAME=$DbUser&& set DB_PASSWORD=$DbPassword&& set JWT_SECRET_KEY=$JwtSecret&& $mailUserArg$mailPassArg cd /d `"$dir`"&& mvn spring-boot:run"
-
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = "cmd.exe"
-        $psi.Arguments = $cmdCommand
-        $psi.RedirectStandardOutput = $true
-        $psi.RedirectStandardError = $true
-        $psi.UseShellExecute = $false
-        $psi.CreateNoWindow = $true
-
-        $process = New-Object System.Diagnostics.Process
-        $process.StartInfo = $psi
-
         # Clean previous log
         if (Test-Path $logFile) { Clear-Content -Path $logFile -ErrorAction SilentlyContinue }
 
-        # Asynchronously capture output to log file
-        $outEvent = Register-ObjectEvent -InputObject $process -EventName OutputDataReceived -Action {
-            if ($EventArgs.Data) { Add-Content -Path $Event.MessageData -Value $EventArgs.Data -ErrorAction SilentlyContinue }
-        } -MessageData $logFile
-
-        $errEvent = Register-ObjectEvent -InputObject $process -EventName ErrorDataReceived -Action {
-            if ($EventArgs.Data) { Add-Content -Path $Event.MessageData -Value $EventArgs.Data -ErrorAction SilentlyContinue }
-        } -MessageData $logFile
-
-        [void]$process.Start()
-        $process.BeginOutputReadLine()
-        $process.BeginErrorReadLine()
+        $cmdCommand = "/c set JAVA_HOME=$($env:JAVA_HOME)&& set PATH=$($env:JAVA_HOME)\bin;%PATH%&& set DB_USERNAME=$DbUser&& set DB_PASSWORD=$DbPassword&& set JWT_SECRET_KEY=$JwtSecret&& $mailUserArg$mailPassArg cd /d `"$dir`"&& mvn spring-boot:run > `"$logFile`" 2>&1"
+        Start-Process -FilePath "cmd.exe" -ArgumentList $cmdCommand -WindowStyle Hidden
 
         Write-Host "     Started in background. Logs: logs\$name.log" -ForegroundColor DarkGray
         
