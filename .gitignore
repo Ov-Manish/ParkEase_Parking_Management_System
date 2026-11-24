@@ -1,3 +1,6 @@
+# Environment secrets
+.env
+
 # Logs directory created by background launcher
 logs/
 *.log

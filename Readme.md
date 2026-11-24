@@ -193,9 +193,9 @@ parkease/
 - [X] payment-service
 - [X] notification-service
 - [X] analytics-service
+- [X] Kafka topics and event flow
+- [X] Docker Compose setup
 - [ ] parkease-web (Thymeleaf UI)
-- [ ] Kafka topics and event flow
-- [ ] Docker Compose setup
 ## 👨‍💻 Author
  
 Built by **Manish** as part of the BridgeLabz Java Full Stack Fellowship.

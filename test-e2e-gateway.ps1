@@ -175,8 +175,18 @@ if (-not $selectedLot -or -not $selectedLot.lotId) {
     $mgrToken = if ($mgrLogin.accessToken) { $mgrLogin.accessToken } else { $mgrLoginRaw.accessToken }
     $mgrHeaders = @{ "Authorization" = "Bearer $mgrToken" }
 
-    # 2. Login Existing Platform Admin (user@example.com)
-    $admLoginRaw = Invoke-RestMethod -Uri "$GatewayUrl/api/v1/auth/login" -Method POST -Body (@{ email = "user@example.com"; password = "stringst" } | ConvertTo-Json) -ContentType "application/json"
+    # 2. Login Existing Platform Admin (admin@parkease.test), auto-register if fresh DB
+    $admPass = "Password123!"
+    $admEmail = "admin@parkease.test"
+    $admPhone = "9" + (Get-Random -Minimum 100000000 -Maximum 999999999).ToString()
+    $admLoginRaw = $null
+    try {
+        $admLoginRaw = Invoke-RestMethod -Uri "$GatewayUrl/api/v1/auth/login" -Method POST -Body (@{ email = $admEmail; password = $admPass } | ConvertTo-Json) -ContentType "application/json"
+    } catch {
+        $admReg = @{ fullName = "Super Admin"; email = $admEmail; password = $admPass; phone = $admPhone; role = "ADMIN" } | ConvertTo-Json
+        Invoke-RestMethod -Uri "$GatewayUrl/api/v1/auth/register" -Method POST -Body $admReg -ContentType "application/json" | Out-Null
+        $admLoginRaw = Invoke-RestMethod -Uri "$GatewayUrl/api/v1/auth/login" -Method POST -Body (@{ email = $admEmail; password = $admPass } | ConvertTo-Json) -ContentType "application/json"
+    }
     $admLogin = Parse-ApiResponse $admLoginRaw
     $admToken = if ($admLogin.accessToken) { $admLogin.accessToken } else { $admLoginRaw.accessToken }
     $admHeaders = @{ "Authorization" = "Bearer $admToken" }
