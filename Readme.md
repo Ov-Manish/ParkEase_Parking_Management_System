@@ -192,7 +192,7 @@ parkease/
 - [X] booking-service
 - [X] payment-service
 - [X] notification-service
-- [ ] analytics-service
+- [X] analytics-service
 - [ ] parkease-web (Thymeleaf UI)
 - [ ] Kafka topics and event flow
 - [ ] Docker Compose setup
