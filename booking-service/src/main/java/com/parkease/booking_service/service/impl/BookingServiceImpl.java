@@ -4,6 +4,9 @@ package com.parkease.booking_service.service.impl;
 import com.parkease.booking_service.client.ParkingLotClient;
 import com.parkease.booking_service.client.SpotClient;
 import com.parkease.booking_service.client.VehicleClient;
+import com.parkease.booking_service.dto.event.AuditEvent;
+import com.parkease.booking_service.dto.event.OccupancyEvent;
+import com.parkease.booking_service.producer.AuditKafkaProducer;
 import com.parkease.booking_service.producer.BookingEventProducer;
 import com.parkease.booking_service.dto.request.BookingRequest;
 import com.parkease.booking_service.dto.response.BookingResponse;
@@ -14,6 +17,7 @@ import com.parkease.booking_service.enums.BookingStatus;
 import com.parkease.booking_service.exception.BadRequestException;
 import com.parkease.booking_service.exception.ConflictException;
 import com.parkease.booking_service.exception.ResourceNotFoundException;
+import com.parkease.booking_service.producer.OccupancyKafkaProducer;
 import com.parkease.booking_service.repository.BookingRepository;
 import com.parkease.booking_service.security.JwtTokenProvider;
 import com.parkease.booking_service.service.BookingService;
@@ -42,6 +46,8 @@ public class BookingServiceImpl implements BookingService {
     private final VehicleClient vehicleClient;
     private final BookingEventProducer bookingEventProducer;
     private final JwtTokenProvider jwtTokenProvider;
+    private final OccupancyKafkaProducer occupancyKafkaProducer;
+    private final AuditKafkaProducer auditKafkaProducer;
 
     private static final Set<BookingStatus> ACTIVE_STATUSES = Set.of(
             BookingStatus.CONFIRMED,
@@ -136,6 +142,13 @@ public class BookingServiceImpl implements BookingService {
         Booking updatedBooking = bookingRepository.save(booking);
         spotClient.updateSpotStatus(booking.getSpotId(),"OCCUPIED",jwtToken);
 
+        occupancyKafkaProducer.sendOcuupancyEvent(OccupancyEvent.builder()
+                .lotId(booking.getLotId())
+                .spotId(booking.getSpotId())
+                .eventType("CHECK_IN")
+                .timestamp(LocalDateTime.now())
+                .build());
+
         log.info("Check-in successful for booking: {}", booking.getBookingReference());
 
         return CheckInResponse.builder()
@@ -200,6 +213,12 @@ public class BookingServiceImpl implements BookingService {
             booking.setStatus(BookingStatus.COMPLETED);
 
             Booking completedBooking = bookingRepository.save(booking);
+        occupancyKafkaProducer.sendOcuupancyEvent(OccupancyEvent.builder()
+                .lotId(booking.getLotId())
+                .spotId(booking.getSpotId())
+                .eventType("CHECK_OUT")
+                .timestamp(LocalDateTime.now())
+                .build());
 
 //            Releasing the Spot from reserved to available
             spotClient.updateSpotStatus(booking.getSpotId(),"AVAILABLE", jwtToken);
@@ -245,6 +264,16 @@ public class BookingServiceImpl implements BookingService {
         booking.setCancellationReason("Cancelled by driver");
 
         Booking cancelledBooking = bookingRepository.save(booking);
+
+        auditKafkaProducer.sendAuditEvent(AuditEvent.builder()
+                .actorId(userId)
+                .action("BOOKING_CANCELLED")
+                .entityName("BOOKING")
+                .entityId(booking.getBookingId())
+                .beforeValue("Status: " + booking.getStatus())
+                .afterValue("Status: CANCELLED, Reason: " + cancelledBooking.getStatus())
+                .timestamp(LocalDateTime.now())
+                .build());
 
         spotClient.updateSpotStatus(booking.getSpotId() , "AVAILABLE", jwtToken);
         String spotNumber = spotClient.getSpotNumber(booking.getSpotId(),jwtToken);
