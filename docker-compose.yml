@@ -154,6 +154,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - SPRING_DATA_REDIS_HOST=redis
+      - APP_SERVICES_PARKINGLOT=http://parkinglot-service:8082
     depends_on:
       mysql:
         condition: service_healthy
@@ -198,6 +199,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - SPRING_RABBITMQ_HOST=rabbitmq
+      - BOOKING_SERVICE_URL=http://booking-service:8084
     depends_on:
       mysql:
         condition: service_healthy
@@ -245,6 +247,10 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - PARKINGLOT_SERVICE_URL=http://parkinglot-service:8082
+      - SPOT_SERVICE_URL=http://spot-service:8083
+      - BOOKING_SERVICE_URL=http://booking-service:8084
+      - PAYMENT_SERVICE_URL=http://payment-service:8085
     depends_on:
       mysql:
         condition: service_healthy
