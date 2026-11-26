@@ -14,6 +14,7 @@ import com.parkease.booking_service.dto.response.CheckInResponse;
 import com.parkease.booking_service.dto.response.CheckOutResponse;
 import com.parkease.booking_service.entity.Booking;
 import com.parkease.booking_service.enums.BookingStatus;
+import com.parkease.booking_service.enums.BookingType;
 import com.parkease.booking_service.exception.BadRequestException;
 import com.parkease.booking_service.exception.ConflictException;
 import com.parkease.booking_service.exception.ResourceNotFoundException;
@@ -90,6 +91,14 @@ public class BookingServiceImpl implements BookingService {
 //      Generate a human-readable booking ticket reference
         String bookingTicketReference = bookingReferance();
 
+//      Per PDF Section 2.5: Pre-Booking calculates upfront charge with a minimum 1-hour charge; Walk-in has no advance charge
+        BigDecimal upfrontFare = null;
+        if (request.getBookingType() == BookingType.PRE_BOOKING) {
+            long reservedMinutes = Duration.between(request.getReservedFrom(), request.getReservedTo()).toMinutes();
+            long billableHours = Math.max(1L, (long) Math.ceil(reservedMinutes / 60.0));
+            upfrontFare = pricePerHour.multiply(BigDecimal.valueOf(billableHours)).setScale(2, RoundingMode.HALF_UP);
+        }
+
 //      Construct and persist the Booking entity
         Booking booking = Booking.builder()
                 .bookingReference(bookingTicketReference)
@@ -103,7 +112,9 @@ public class BookingServiceImpl implements BookingService {
                 .reservedFrom(request.getReservedFrom())
                 .reservedTo(request.getReservedTo())
                 .pricePerHour(pricePerHour)
+                .baseFare(upfrontFare)
                 .penaltyAmount(BigDecimal.ZERO)
+                .totalAmount(upfrontFare)
                 .isActive(true)
                 .build();
 
@@ -207,6 +218,9 @@ public class BookingServiceImpl implements BookingService {
         }
 
             BigDecimal totalAmount = baseFair.add(penaltyAmount).setScale(2,RoundingMode.HALF_UP);
+            if (booking.getBookingType() == BookingType.PRE_BOOKING && booking.getTotalAmount() != null) {
+                totalAmount = totalAmount.max(booking.getTotalAmount());
+            }
             booking.setBaseFare(baseFair.setScale(2,RoundingMode.HALF_UP));
             booking.setPenaltyAmount(penaltyAmount.setScale(2,RoundingMode.HALF_UP));
             booking.setTotalAmount(totalAmount);

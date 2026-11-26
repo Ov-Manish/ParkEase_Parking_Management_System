@@ -50,6 +50,10 @@ public class PaymentServiceImpl implements PaymentService {
 
             // 1. Verify booking with booking-service (checks existence, ownership, and non-cancelled status)
             BigDecimal billedAmount = bookingClient.verifyBookingAndGetAmount(request.getBookingId(),userId,jwtToken);
+            if (billedAmount.compareTo(BigDecimal.ZERO) > 0 && request.getAmount().compareTo(billedAmount) < 0) {
+                throw new BadRequestException("Payment amount (" + request.getAmount()
+                        + ") cannot be less than the billed booking amount (" + billedAmount + ")");
+            }
 
             // 2. Prevent Double Payment (Check if booking is already paid or refunded)
             paymentRepository.findByBookingIdOrderByCreatedAtDesc(request.getBookingId()).stream().findFirst().ifPresent(existingPayment -> {
