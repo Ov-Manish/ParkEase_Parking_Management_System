@@ -39,4 +39,6 @@ public interface PaymentService {
      * Retrieves all payment receipts belonging to the authenticated driver.
      */
     List<PaymentResponse> getUserPayments(UUID userId);
+
+    public void autoRefundForCancelledBooking(UUID bookingId , UUID actorId );
 }

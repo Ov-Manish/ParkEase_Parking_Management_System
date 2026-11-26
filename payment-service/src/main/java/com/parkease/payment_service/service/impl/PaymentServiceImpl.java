@@ -1,6 +1,7 @@
 package com.parkease.payment_service.service.impl;
 
 import com.parkease.payment_service.client.BookingClient;
+import com.parkease.payment_service.dto.event.PaymentSagaEvent;
 import com.parkease.payment_service.dto.request.PaymentInitiateRequest;
 import com.parkease.payment_service.dto.request.PaymentVerifyRequest;
 import com.parkease.payment_service.dto.request.RefundRequest;
@@ -15,6 +16,7 @@ import com.parkease.payment_service.gateway.PaymentGateway;
 import com.parkease.payment_service.gateway.dto.GatewayOrderResponse;
 import com.parkease.payment_service.gateway.dto.GatewayRefundResponse;
 import com.parkease.payment_service.producer.PaymentEventProducer;
+import com.parkease.payment_service.producer.PaymentKafkaProducer;
 import com.parkease.payment_service.repository.PaymentRepository;
 import com.parkease.payment_service.security.JwtTokenProvider;
 import com.parkease.payment_service.service.PaymentService;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final BookingClient bookingClient;
     private final PaymentEventProducer paymentEventProducer;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PaymentKafkaProducer paymentKafkaProducer;
 
     @Override
     @Transactional
@@ -122,6 +126,17 @@ public class PaymentServiceImpl implements PaymentService {
             }
         Payment savedPayment = paymentRepository.save(payment);
 
+            if (savedPayment.getStatus() == PaymentStatus.COMPLETED){
+                paymentKafkaProducer.sendPaymentEvent(PaymentSagaEvent.builder()
+                        .paymentId(savedPayment.getPaymentId())
+                        .bookingId(savedPayment.getBookingId())
+                        .userId(savedPayment.getUserId())
+                        .amount(savedPayment.getAmount())
+                        .status("COMPLETED")
+                        .timestamp(LocalDateTime.now())
+                        .build());
+            }
+
         // Publish asynchronous payment success event to RabbitMQ
         paymentEventProducer.publishPaymentSuccess(savedPayment, email, null);
 
@@ -163,6 +178,14 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (savedPayment.getStatus() == PaymentStatus.COMPLETED) {
             paymentEventProducer.publishPaymentSuccess(savedPayment, savedPayment.getUserEmail(), null);
+            paymentKafkaProducer.sendPaymentEvent(PaymentSagaEvent.builder()
+                    .paymentId(savedPayment.getPaymentId())
+                    .bookingId(savedPayment.getBookingId())
+                    .userId(savedPayment.getUserId())
+                    .amount(savedPayment.getAmount())
+                    .status("COMPLETED")
+                    .timestamp(LocalDateTime.now())
+                    .build());
         } else {
             paymentEventProducer.publishPaymentFailed(savedPayment, savedPayment.getUserEmail(), null, savedPayment.getFailureReason());
         }
@@ -220,9 +243,20 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setStatus(PaymentStatus.PARTIALLY_REFUNDED);
         }
         Payment savedPayment = paymentRepository.save(payment);
+        if (savedPayment.getStatus() == PaymentStatus.REFUNDED) {
+            paymentKafkaProducer.sendPaymentEvent(PaymentSagaEvent.builder()
+                    .paymentId(savedPayment.getPaymentId())
+                    .bookingId(savedPayment.getBookingId())
+                    .userId(savedPayment.getUserId())
+                    .amount(savedPayment.getAmount())
+                    .status("REFUNDED")
+                    .timestamp(LocalDateTime.now())
+                    .build());
+        }
 
         // Publish asynchronous payment refund event to RabbitMQ
         paymentEventProducer.publishPaymentRefunded(savedPayment, savedPayment.getUserEmail(), null);
+
 
         return mapToPaymentResponse(savedPayment);
     }
@@ -260,6 +294,24 @@ public class PaymentServiceImpl implements PaymentService {
                 .map(this::mapToPaymentResponse)
                 .toList();
     }
+
+    @Transactional
+    public void autoRefundForCancelledBooking(UUID bookingId, UUID actorId) {
+        paymentRepository.findByBookingIdOrderByCreatedAtDesc(bookingId).stream()
+                .findFirst()
+                .filter(p -> p.getStatus() == PaymentStatus.COMPLETED)
+                .ifPresent(p -> {
+                    RefundRequest req = RefundRequest.builder()
+                            .paymentId(p.getPaymentId())
+                            .refundAmount(p.getAmount())
+                            .reason("Auto-refund via Saga: booking cancelled")
+                            .build();
+                    refundPayment(actorId, "ROLE_ADMIN", req);
+                });
+    }
+
+
+//    HELPER METHOD
 
     private PaymentResponse mapToPaymentResponse(Payment payment) {
         return PaymentResponse.builder()

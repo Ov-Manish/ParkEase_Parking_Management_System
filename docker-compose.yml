@@ -198,6 +198,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_RABBITMQ_HOST=rabbitmq
       - BOOKING_SERVICE_URL=http://booking-service:8084
     depends_on:

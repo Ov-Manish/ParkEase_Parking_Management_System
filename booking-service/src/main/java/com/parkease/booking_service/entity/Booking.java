@@ -100,6 +100,10 @@ public class Booking {
     @Column(name = "total_amount", precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
+    @Builder.Default
+    @Column(name = "payment_status", nullable = false, length = 20)
+    private String paymentStatus = "PENDING";
+
     // Optional cancellation reason if cancelled
     @Column(name = "cancellation_reason", length = 255)
     private String cancellationReason;
