@@ -68,6 +68,10 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Reservation end time must be after the start time");
         }
 
+        if (request.getBookingType() == BookingType.WALK_IN && request.getReservedFrom().isAfter(LocalDateTime.now().plusMinutes(15))){
+            throw new BadRequestException("Walk-in bookings are only for immediate arrival. Use PRE_BOOKING for advance reservations.");
+        }
+
 //        Cross-service validation: Ensure the spot belongs to the specified lot and is active
         String spotNumber = spotClient.verifySpotBelongsToLot(request.getSpotId(),request.getLotId(),jwtToken);
 
@@ -208,7 +212,7 @@ public class BookingServiceImpl implements BookingService {
 
 //        Overstay penalty calculation: if checkout is after reservedTo, apply 50% penalty on extra hours
         BigDecimal penaltyAmount = BigDecimal.ZERO;
-        if (checkOutTime.isAfter(booking.getReservedTo())) {
+        if (booking.getBookingType() == BookingType.PRE_BOOKING && checkOutTime.isAfter(booking.getReservedTo())) {
             long overstayMinutes = Duration.between(booking.getReservedTo(), checkOutTime).toMinutes();
 
             long overStayHours = (long) Math.ceil(overstayMinutes / 60.0);
