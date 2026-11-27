@@ -13,7 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Slf4j
@@ -36,6 +38,28 @@ public class BookingExpiryScheduler {
     @Scheduled(fixedDelayString = "${parkease.booking.expiry-check-delay-ms:60000}")
     @Transactional
     public void sweepExpiredBookings() {
+
+        Instant paymentCutOff = Instant.now().minus(10, ChronoUnit.MINUTES);
+
+        List<Booking> unPaidBoking = bookingRepository.findByStatusAndCreatedAtBeforeAndIsActiveTrue(
+                BookingStatus.PAYMENT_PENDING, paymentCutOff
+        );
+
+        for (Booking booking : unPaidBoking){
+            try {
+                booking.setStatus(BookingStatus.EXPIRED);
+                booking.setCancellationReason("Payment timeout: pre-booking not paid within 10 minutes");
+                bookingRepository.save(booking);
+                spotClient.releaseSpot(booking.getSpotId());
+
+                log.info("[PAYMENT TIMEOUT ENGINE] Expired unpaid booking: {}", booking.getBookingReference());
+            }catch (Exception ex){
+                log.error("[PAYMENT TIMEOUT ERROR] Failed to expire unpaid booking {}: {}",
+                        booking.getBookingId(), ex.getMessage(), ex);
+            }
+        }
+
+
         LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(gracePeriodMinutes);
         List<Booking> expiredBookings = bookingRepository.findExpiredBookings(BookingStatus.CONFIRMED, cutoffTime);
 

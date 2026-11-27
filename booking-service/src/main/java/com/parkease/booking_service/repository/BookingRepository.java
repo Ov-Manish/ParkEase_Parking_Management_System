@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -60,4 +61,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findExpiredBookings(
             @Param("status") BookingStatus status ,
             @Param("cutOffTime") LocalDateTime cutOffTime);
+
+
+    List<Booking> findByStatusAndCreatedAtBeforeAndIsActiveTrue(BookingStatus status, Instant cutoff);
 }

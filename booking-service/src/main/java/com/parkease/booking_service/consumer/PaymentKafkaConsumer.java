@@ -1,6 +1,7 @@
 package com.parkease.booking_service.consumer;
 
 import com.parkease.booking_service.dto.event.PaymentSagaEvent;
+import com.parkease.booking_service.enums.BookingStatus;
 import com.parkease.booking_service.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,9 @@ public class PaymentKafkaConsumer {
         bookingRepository.findById(event.getBookingId()).ifPresent(booking -> {
             if ("COMPLETED".equalsIgnoreCase(event.getStatus())){
                 booking.setPaymentStatus("PAID");
+                if (booking.getStatus() == BookingStatus.PAYMENT_PENDING){
+                    booking.setStatus(BookingStatus.CONFIRMED);
+                }
             }else if ("REFUNDED".equalsIgnoreCase(event.getStatus())){
                 booking.setPaymentStatus("REFUNDED");
             }

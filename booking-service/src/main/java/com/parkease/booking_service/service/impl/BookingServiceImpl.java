@@ -51,6 +51,7 @@ public class BookingServiceImpl implements BookingService {
     private final AuditKafkaProducer auditKafkaProducer;
 
     private static final Set<BookingStatus> ACTIVE_STATUSES = Set.of(
+            BookingStatus.PAYMENT_PENDING,
             BookingStatus.CONFIRMED,
             BookingStatus.CHECKED_IN
     );
@@ -99,6 +100,8 @@ public class BookingServiceImpl implements BookingService {
             upfrontFare = pricePerHour.multiply(BigDecimal.valueOf(billableHours)).setScale(2, RoundingMode.HALF_UP);
         }
 
+        BookingStatus intialStatus  = (request.getBookingType() == BookingType.PRE_BOOKING) ? BookingStatus.PAYMENT_PENDING : BookingStatus.CONFIRMED;
+
 //      Construct and persist the Booking entity
         Booking booking = Booking.builder()
                 .bookingReference(bookingTicketReference)
@@ -108,7 +111,7 @@ public class BookingServiceImpl implements BookingService {
                 .vehicleId(request.getVehicleId())
                 .licensePlate(licensePlate)
                 .bookingType(request.getBookingType())
-                .status(BookingStatus.CONFIRMED)
+                .status(intialStatus)
                 .reservedFrom(request.getReservedFrom())
                 .reservedTo(request.getReservedTo())
                 .pricePerHour(pricePerHour)
@@ -269,7 +272,7 @@ public class BookingServiceImpl implements BookingService {
 
 //        only confirmed booking cancels
 
-        if (booking.getStatus() != BookingStatus.CONFIRMED){
+        if (booking.getStatus() != BookingStatus.CONFIRMED && booking.getStatus() != BookingStatus.PAYMENT_PENDING){
             throw new BadRequestException("Cannot cancel booking. Only CONFIRMED bookings can be cancelled (current status: " + booking.getStatus() + ")");
         }
 
